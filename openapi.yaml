@@ -1,0 +1,925 @@
+openapi: 3.0.3
+info:
+  title: Digital Payment E-Wallet API - Complete Documentation
+  version: 1.0.0
+  description: |
+    API ini adalah dokumentasi lengkap untuk sistem Digital Payment E-Wallet yang terdiri dari dua microservices:
+    
+    **1. User Service (Port 8001)**
+    - Mengelola data pengguna (CRUD operations)
+    - Mengelola saldo pengguna
+    - Menyediakan informasi profil pengguna
+    
+    **2. Payment Service (Port 8002)**
+    - Mengelola transaksi top-up
+    - Mengelola transaksi transfer antar pengguna
+    - Menyediakan riwayat transaksi
+    
+    Sistem ini dibangun menggunakan arsitektur microservices dengan Node.js, Express, dan MySQL.
+    Setiap service berjalan secara independen dan berkomunikasi melalui HTTP API.
+    
+    ## Fitur Utama
+    - Manajemen pengguna lengkap
+    - Top-up saldo dengan validasi minimum Rp 10.000
+    - Transfer antar pengguna dengan pengecekan saldo
+    - Riwayat transaksi lengkap
+    - Health check untuk monitoring
+    
+    ## Autentikasi
+    Sistem mendukung JWT authentication (saat ini dinonaktifkan dalam mode development).
+    
+  contact:
+    name: Deazard & Rayhan
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8001
+    description: User Service - Server lokal untuk development
+  - url: http://localhost:8002
+    description: Payment Service - Server lokal untuk development
+
+tags:
+  - name: User Service - Health
+    description: Health check endpoint untuk User Service
+  - name: User Service - Users
+    description: Endpoint untuk manajemen data pengguna
+  - name: Payment Service - Health
+    description: Health check endpoint untuk Payment Service
+  - name: Payment Service - Transactions
+    description: Endpoint untuk manajemen transaksi pembayaran
+
+paths:
+  # ============================================
+  # USER SERVICE ENDPOINTS (Port 8001)
+  # ============================================
+  
+  /health:
+    get:
+      servers:
+        - url: http://localhost:8001
+          description: User Service
+      tags:
+        - User Service - Health
+      summary: Pengecekan kesehatan User Service
+      description: Endpoint ini digunakan untuk mengecek apakah User Service sedang berjalan dengan baik
+      operationId: userServiceHealthCheck
+      responses:
+        '200':
+          description: Service berjalan dengan baik
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+              example:
+                success: true
+                message: User Service is running
+                timestamp: "2024-01-15T10:30:00.000Z"
+                service: user-service
+                port: 8001
+
+  /api/users:
+    get:
+      servers:
+        - url: http://localhost:8001
+          description: User Service
+      tags:
+        - User Service - Users
+      summary: Mendapatkan semua data pengguna
+      description: Endpoint ini mengembalikan daftar seluruh pengguna yang terdaftar dalam sistem
+      operationId: getAllUsers
+      responses:
+        '200':
+          description: Berhasil mendapatkan data pengguna
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      servers:
+        - url: http://localhost:8001
+          description: User Service
+      tags:
+        - User Service - Users
+      summary: Membuat pengguna baru
+      description: Endpoint ini digunakan untuk mendaftarkan pengguna baru ke dalam sistem
+      operationId: createUser
+      requestBody:
+        required: true
+        description: Data pengguna yang akan dibuat
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                  description: Nama lengkap pengguna
+                  example: John Doe
+                email:
+                  type: string
+                  format: email
+                  description: Alamat email pengguna (harus unik)
+                  example: john@example.com
+                phone:
+                  type: string
+                  description: Nomor telepon pengguna
+                  example: "081234567890"
+                balance:
+                  type: number
+                  format: double
+                  description: Saldo awal pengguna (default 0)
+                  example: 100000
+                  default: 0
+      responses:
+        '201':
+          description: Pengguna berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User created successfully
+                  data:
+                    $ref: '#/components/schemas/User'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/users/{id}:
+    get:
+      servers:
+        - url: http://localhost:8001
+          description: User Service
+      tags:
+        - User Service - Users
+      summary: Mendapatkan data pengguna berdasarkan ID
+      description: Endpoint ini mengembalikan detail informasi pengguna berdasarkan ID yang diberikan
+      operationId: getUserById
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Berhasil mendapatkan data pengguna
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      servers:
+        - url: http://localhost:8001
+          description: User Service
+      tags:
+        - User Service - Users
+      summary: Memperbarui informasi pengguna
+      description: Endpoint ini digunakan untuk memperbarui data pengguna seperti nama, email, dan nomor telepon
+      operationId: updateUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        description: Data pengguna yang akan diperbarui
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Nama lengkap pengguna
+                  example: John Doe Updated
+                email:
+                  type: string
+                  format: email
+                  description: Alamat email pengguna
+                  example: john.updated@example.com
+                phone:
+                  type: string
+                  description: Nomor telepon pengguna
+                  example: "081234567899"
+      responses:
+        '200':
+          description: Data pengguna berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User updated successfully
+                  data:
+                    $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      servers:
+        - url: http://localhost:8001
+          description: User Service
+      tags:
+        - User Service - Users
+      summary: Menghapus pengguna
+      description: Endpoint ini digunakan untuk menghapus pengguna dari sistem secara permanen
+      operationId: deleteUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Pengguna berhasil dihapus
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User deleted successfully
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/users/{id}/balance:
+    patch:
+      servers:
+        - url: http://localhost:8001
+          description: User Service
+      tags:
+        - User Service - Users
+      summary: Memperbarui saldo pengguna
+      description: |
+        Endpoint ini digunakan untuk memperbarui saldo pengguna dengan tiga operasi:
+        - **add**: Menambah saldo
+        - **deduct**: Mengurangi saldo (cek saldo mencukupi)
+        - **set**: Mengatur saldo ke nilai tertentu
+      operationId: updateUserBalance
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        description: Jumlah dan operasi yang akan dilakukan pada saldo
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - balance
+              properties:
+                balance:
+                  type: number
+                  format: double
+                  description: Jumlah saldo yang akan ditambah/dikurangi/diset
+                  example: 50000
+                operation:
+                  type: string
+                  enum: [add, deduct, set]
+                  description: Jenis operasi yang dilakukan
+                  default: add
+                  example: add
+            examples:
+              tambahSaldo:
+                summary: Menambah saldo
+                value:
+                  balance: 50000
+                  operation: add
+              kurangiSaldo:
+                summary: Mengurangi saldo
+                value:
+                  balance: 25000
+                  operation: deduct
+              setSaldo:
+                summary: Set saldo ke nilai tertentu
+                value:
+                  balance: 100000
+                  operation: set
+      responses:
+        '200':
+          description: Saldo berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Balance updated successfully
+                  data:
+                    $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+        '422':
+          description: Error validasi atau saldo tidak mencukupi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Insufficient balance
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ============================================
+  # PAYMENT SERVICE ENDPOINTS (Port 8002)
+  # ============================================
+
+  /health/:
+    get:
+      servers:
+        - url: http://localhost:8002
+          description: Payment Service
+      tags:
+        - Payment Service - Health
+      summary: Pengecekan kesehatan Payment Service
+      description: Endpoint ini digunakan untuk mengecek apakah Payment Service sedang berjalan dengan baik
+      operationId: paymentServiceHealthCheck
+      responses:
+        '200':
+          description: Service berjalan dengan baik
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+              example:
+                success: true
+                message: Payment Service is running
+                timestamp: "2024-01-15T10:30:00.000Z"
+                service: payment-service
+                port: 8002
+
+  /api/transactions:
+    get:
+      servers:
+        - url: http://localhost:8002
+          description: Payment Service
+      tags:
+        - Payment Service - Transactions
+      summary: Mendapatkan semua data transaksi
+      description: Endpoint ini mengembalikan daftar seluruh transaksi yang ada dalam sistem, diurutkan dari yang terbaru
+      operationId: getAllTransactions
+      responses:
+        '200':
+          description: Berhasil mendapatkan data transaksi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/transactions/{id}:
+    get:
+      servers:
+        - url: http://localhost:8002
+          description: Payment Service
+      tags:
+        - Payment Service - Transactions
+      summary: Mendapatkan data transaksi berdasarkan ID
+      description: Endpoint ini mengembalikan detail informasi transaksi berdasarkan ID yang diberikan
+      operationId: getTransactionById
+      parameters:
+        - $ref: '#/components/parameters/TransactionId'
+      responses:
+        '200':
+          description: Berhasil mendapatkan data transaksi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Transaction'
+        '404':
+          $ref: '#/components/responses/TransactionNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/transactions/topup:
+    post:
+      servers:
+        - url: http://localhost:8002
+          description: Payment Service
+      tags:
+        - Payment Service - Transactions
+      summary: Top-up saldo pengguna
+      description: |
+        Endpoint ini digunakan untuk melakukan top-up (isi ulang) saldo pengguna.
+        Minimal jumlah top-up adalah Rp 10.000.
+        
+        Proses yang dilakukan:
+        1. Validasi data input (user_id dan amount)
+        2. Validasi minimal amount (10000)
+        3. Memanggil User Service untuk menambah saldo
+        4. Menyimpan transaksi dengan status 'success'
+        5. Menggunakan database transaction untuk memastikan atomicity
+      operationId: topup
+      requestBody:
+        required: true
+        description: Data top-up yang akan diproses
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+                - amount
+              properties:
+                user_id:
+                  type: integer
+                  description: ID pengguna yang akan di-top-up
+                  example: 1
+                  minimum: 1
+                amount:
+                  type: number
+                  format: double
+                  description: Jumlah top-up dalam rupiah (minimal 10000)
+                  example: 50000
+                  minimum: 10000
+      responses:
+        '200':
+          description: Top-up berhasil dilakukan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Top-up successful
+                  data:
+                    type: object
+                    properties:
+                      transaction_id:
+                        type: integer
+                        example: 1
+                      user_id:
+                        type: integer
+                        example: 1
+                      amount:
+                        type: number
+                        format: double
+                        example: 50000.00
+                      type:
+                        type: string
+                        example: topup
+                      status:
+                        type: string
+                        example: success
+                      created_at:
+                        type: string
+                        format: date-time
+                        example: "2024-01-15T10:30:00.000Z"
+        '422':
+          description: Error validasi data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validation error
+                  errors:
+                    type: object
+                    properties:
+                      user_id:
+                        type: string
+                        example: User ID is required
+                      amount:
+                        type: string
+                        example: Minimum top-up amount is 10000
+        '500':
+          description: Gagal melakukan top-up
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/transactions/transfer:
+    post:
+      servers:
+        - url: http://localhost:8002
+          description: Payment Service
+      tags:
+        - Payment Service - Transactions
+      summary: Transfer saldo antar pengguna
+      description: |
+        Endpoint ini digunakan untuk melakukan transfer saldo dari satu pengguna ke pengguna lain.
+        Minimal jumlah transfer adalah Rp 10.000.
+        
+        Proses yang dilakukan:
+        1. Validasi data input (user_id, target_user_id, amount)
+        2. Validasi tidak boleh transfer ke diri sendiri
+        3. Validasi minimal amount (10000)
+        4. Cek keberadaan pengguna pengirim dan penerima
+        5. Cek saldo pengirim mencukupi
+        6. Kurangi saldo pengirim
+        7. Tambah saldo penerima
+        8. Simpan transaksi dengan status 'success'
+        9. Menggunakan database transaction untuk memastikan atomicity
+      operationId: transfer
+      requestBody:
+        required: true
+        description: Data transfer yang akan diproses
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+                - target_user_id
+                - amount
+              properties:
+                user_id:
+                  type: integer
+                  description: ID pengguna pengirim
+                  example: 1
+                  minimum: 1
+                target_user_id:
+                  type: integer
+                  description: ID pengguna penerima
+                  example: 2
+                  minimum: 1
+                amount:
+                  type: number
+                  format: double
+                  description: Jumlah transfer dalam rupiah (minimal 10000)
+                  example: 25000
+                  minimum: 10000
+      responses:
+        '200':
+          description: Transfer berhasil dilakukan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Transfer successful
+                  data:
+                    type: object
+                    properties:
+                      transaction_id:
+                        type: integer
+                        example: 2
+                      user_id:
+                        type: integer
+                        example: 1
+                      target_user_id:
+                        type: integer
+                        example: 2
+                      amount:
+                        type: number
+                        format: double
+                        example: 25000.00
+                      type:
+                        type: string
+                        example: transfer
+                      status:
+                        type: string
+                        example: success
+                      created_at:
+                        type: string
+                        format: date-time
+                        example: "2024-01-15T10:30:00.000Z"
+        '404':
+          description: Pengguna tidak ditemukan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Sender not found
+        '422':
+          description: Error validasi atau saldo tidak mencukupi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Insufficient balance
+        '500':
+          description: Transfer gagal dilakukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      description: ID unik pengguna
+      schema:
+        type: integer
+        minimum: 1
+        example: 1
+
+    TransactionId:
+      name: id
+      in: path
+      required: true
+      description: ID unik transaksi
+      schema:
+        type: integer
+        minimum: 1
+        example: 1
+
+  schemas:
+    HealthCheckResponse:
+      type: object
+      description: Response untuk health check endpoint
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Service is running
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        service:
+          type: string
+          example: user-service
+        port:
+          type: integer
+          example: 8001
+
+    User:
+      type: object
+      description: Model data pengguna
+      required:
+        - name
+        - email
+      properties:
+        id:
+          type: integer
+          description: ID unik pengguna (auto-generated)
+          example: 1
+        name:
+          type: string
+          description: Nama lengkap pengguna
+          example: John Doe
+        email:
+          type: string
+          format: email
+          description: Alamat email pengguna
+          example: john@example.com
+        phone:
+          type: string
+          description: Nomor telepon pengguna
+          example: "081234567890"
+          nullable: true
+        balance:
+          type: number
+          format: double
+          description: Saldo pengguna dalam rupiah
+          example: 150000.00
+        created_at:
+          type: string
+          format: date-time
+          description: Waktu pembuatan data pengguna
+          example: "2024-01-15T10:30:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Waktu terakhir data pengguna diperbarui
+          example: "2024-01-15T10:30:00.000Z"
+
+    Transaction:
+      type: object
+      description: Model data transaksi
+      required:
+        - user_id
+        - type
+        - amount
+      properties:
+        id:
+          type: integer
+          description: ID unik transaksi (auto-generated)
+          example: 1
+        user_id:
+          type: integer
+          description: ID pengguna pengirim/yang melakukan transaksi
+          example: 1
+        target_user_id:
+          type: integer
+          description: ID pengguna penerima (untuk transaksi transfer)
+          example: 2
+          nullable: true
+        type:
+          type: string
+          enum: [topup, transfer]
+          description: |
+            Jenis transaksi:
+            - topup: Top-up saldo
+            - transfer: Transfer antar pengguna
+          example: transfer
+        amount:
+          type: number
+          format: double
+          description: Jumlah transaksi dalam rupiah
+          example: 50000.00
+        status:
+          type: string
+          description: |
+            Status transaksi:
+            - success: Transaksi berhasil
+            - failed: Transaksi gagal
+            - pending: Transaksi sedang diproses
+          example: success
+        description:
+          type: string
+          description: Deskripsi detail transaksi
+          example: Transfer from user 1 to user 2
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          description: Waktu transaksi dibuat
+          example: "2024-01-15T10:30:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Waktu terakhir transaksi diperbarui
+          example: "2024-01-15T10:30:00.000Z"
+
+    Error:
+      type: object
+      description: Model response error
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          description: Pesan error
+          example: An error occurred
+        error:
+          type: string
+          description: Detail error (hanya muncul di development mode)
+          example: Database connection failed
+
+    ValidationError:
+      type: object
+      description: Model response error validasi
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Validation error
+        errors:
+          type: object
+          description: Detail error validasi per field
+          additionalProperties:
+            type: string
+          example:
+            name: Name is required
+            email: Email is required
+
+  responses:
+    UserNotFound:
+      description: Pengguna tidak ditemukan
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: User not found
+
+    TransactionNotFound:
+      description: Transaksi tidak ditemukan
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: Transaction not found
+
+    ValidationError:
+      description: Error validasi data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Autentikasi menggunakan JWT token.
+        Note: Saat ini dalam mode development, autentikasi tidak diperlukan.
+        Untuk production, tambahkan header: Authorization: Bearer {token}
+
+# Note: Security currently disabled in development mode
+# Uncomment below to enable JWT authentication for all endpoints
+# security:
+#   - BearerAuth: []
+

@@ -1,0 +1,470 @@
+openapi: 3.0.3
+info:
+  title: User Service API - Digital Payment E-Wallet
+  version: 1.0.0
+  description: |
+    API ini digunakan untuk mengelola data pengguna dalam sistem digital payment e-wallet.
+    Service ini menyediakan operasi CRUD untuk manajemen pengguna, termasuk pengelolaan saldo.
+  contact:
+    name: Deazard & Rayhan
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8001
+    description: Server lokal untuk development
+  - url: http://localhost:8001/api
+    description: Base URL API
+
+tags:
+  - name: Health
+    description: Endpoint untuk pengecekan kesehatan service
+  - name: Users
+    description: Endpoint untuk manajemen data pengguna
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Pengecekan kesehatan service
+      description: Endpoint ini digunakan untuk mengecek apakah User Service sedang berjalan dengan baik
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service berjalan dengan baik
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User Service is running
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-01-15T10:30:00.000Z"
+                  service:
+                    type: string
+                    example: user-service
+                  port:
+                    type: integer
+                    example: 8001
+
+  /api/users:
+    get:
+      tags:
+        - Users
+      summary: Mendapatkan semua data pengguna
+      description: Endpoint ini mengembalikan daftar seluruh pengguna yang terdaftar dalam sistem
+      operationId: getAllUsers
+      responses:
+        '200':
+          description: Berhasil mendapatkan data pengguna
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Users
+      summary: Membuat pengguna baru
+      description: Endpoint ini digunakan untuk mendaftarkan pengguna baru ke dalam sistem
+      operationId: createUser
+      requestBody:
+        required: true
+        description: Data pengguna yang akan dibuat
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                  description: Nama lengkap pengguna
+                  example: John Doe
+                email:
+                  type: string
+                  format: email
+                  description: Alamat email pengguna (harus unik)
+                  example: john@example.com
+                phone:
+                  type: string
+                  description: Nomor telepon pengguna
+                  example: "081234567890"
+                balance:
+                  type: number
+                  format: double
+                  description: Saldo awal pengguna (default 0)
+                  example: 100000
+                  default: 0
+      responses:
+        '201':
+          description: Pengguna berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User created successfully
+                  data:
+                    $ref: '#/components/schemas/User'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Mendapatkan data pengguna berdasarkan ID
+      description: Endpoint ini mengembalikan detail informasi pengguna berdasarkan ID yang diberikan
+      operationId: getUserById
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Berhasil mendapatkan data pengguna
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Users
+      summary: Memperbarui informasi pengguna
+      description: Endpoint ini digunakan untuk memperbarui data pengguna seperti nama, email, dan nomor telepon
+      operationId: updateUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        description: Data pengguna yang akan diperbarui
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Nama lengkap pengguna
+                  example: John Doe Updated
+                email:
+                  type: string
+                  format: email
+                  description: Alamat email pengguna
+                  example: john.updated@example.com
+                phone:
+                  type: string
+                  description: Nomor telepon pengguna
+                  example: "081234567899"
+      responses:
+        '200':
+          description: Data pengguna berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User updated successfully
+                  data:
+                    $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Users
+      summary: Menghapus pengguna
+      description: Endpoint ini digunakan untuk menghapus pengguna dari sistem secara permanen
+      operationId: deleteUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Pengguna berhasil dihapus
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User deleted successfully
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/users/{id}/balance:
+    patch:
+      tags:
+        - Users
+      summary: Memperbarui saldo pengguna
+      description: |
+        Endpoint ini digunakan untuk memperbarui saldo pengguna dengan tiga operasi:
+        - **add**: Menambah saldo
+        - **deduct**: Mengurangi saldo (cek saldo mencukupi)
+        - **set**: Mengatur saldo ke nilai tertentu
+      operationId: updateUserBalance
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        description: Jumlah dan operasi yang akan dilakukan pada saldo
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - balance
+              properties:
+                balance:
+                  type: number
+                  format: double
+                  description: Jumlah saldo yang akan ditambah/dikurangi/diset
+                  example: 50000
+                operation:
+                  type: string
+                  enum: [add, deduct, set]
+                  description: Jenis operasi yang dilakukan
+                  default: add
+                  example: add
+            examples:
+              tambahSaldo:
+                summary: Menambah saldo
+                value:
+                  balance: 50000
+                  operation: add
+              kurangiSaldo:
+                summary: Mengurangi saldo
+                value:
+                  balance: 25000
+                  operation: deduct
+              setSaldo:
+                summary: Set saldo ke nilai tertentu
+                value:
+                  balance: 100000
+                  operation: set
+      responses:
+        '200':
+          description: Saldo berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Balance updated successfully
+                  data:
+                    $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/UserNotFound'
+        '422':
+          description: Error validasi atau saldo tidak mencukupi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Insufficient balance
+                  errors:
+                    type: object
+                    properties:
+                      balance:
+                        type: string
+                        example: Balance must be greater than or equal to 0
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      description: ID unik pengguna
+      schema:
+        type: integer
+        minimum: 1
+        example: 1
+
+  schemas:
+    User:
+      type: object
+      description: Model data pengguna
+      required:
+        - name
+        - email
+      properties:
+        id:
+          type: integer
+          description: ID unik pengguna (auto-generated)
+          example: 1
+        name:
+          type: string
+          description: Nama lengkap pengguna
+          example: John Doe
+        email:
+          type: string
+          format: email
+          description: Alamat email pengguna
+          example: john@example.com
+        phone:
+          type: string
+          description: Nomor telepon pengguna
+          example: "081234567890"
+          nullable: true
+        balance:
+          type: number
+          format: double
+          description: Saldo pengguna dalam rupiah
+          example: 150000.00
+        created_at:
+          type: string
+          format: date-time
+          description: Waktu pembuatan data pengguna
+          example: "2024-01-15T10:30:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Waktu terakhir data pengguna diperbarui
+          example: "2024-01-15T10:30:00.000Z"
+
+    Error:
+      type: object
+      description: Model response error
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          description: Pesan error
+          example: An error occurred
+        error:
+          type: string
+          description: Detail error (hanya muncul di development mode)
+          example: Database connection failed
+
+    ValidationError:
+      type: object
+      description: Model response error validasi
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Validation error
+        errors:
+          type: object
+          description: Detail error validasi per field
+          additionalProperties:
+            type: string
+          example:
+            name: Name is required
+            email: Email is required
+
+  responses:
+    UserNotFound:
+      description: Pengguna tidak ditemukan
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: User not found
+
+    ValidationError:
+      description: Error validasi data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Autentikasi menggunakan JWT token.
+        Note: Saat ini dalam mode development, autentikasi tidak diperlukan.
+        Untuk production, tambahkan header: Authorization: Bearer {token}
+
+# Note: Security currently disabled in development mode
+# Uncomment below to enable JWT authentication for all endpoints
+# security:
+#   - BearerAuth: []
+
