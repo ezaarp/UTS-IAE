@@ -16,3 +16,6 @@ run
 
 terakhir run
 3_start.bat -> npm run dev di semua services dan fe
+
+LINK SWAGGER DOCS API
+http://localhost:8001/api-docs/#/
