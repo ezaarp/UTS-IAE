@@ -108,10 +108,6 @@ paths:
                   format: email
                   description: Alamat email pengguna (harus unik)
                   example: john@example.com
-                phone:
-                  type: string
-                  description: Nomor telepon pengguna
-                  example: "081234567890"
                 balance:
                   type: number
                   format: double
@@ -191,10 +187,6 @@ paths:
                   format: email
                   description: Alamat email pengguna
                   example: john.updated@example.com
-                phone:
-                  type: string
-                  description: Nomor telepon pengguna
-                  example: "081234567899"
       responses:
         '200':
           description: Data pengguna berhasil diperbarui
@@ -368,11 +360,6 @@ components:
           format: email
           description: Alamat email pengguna
           example: john@example.com
-        phone:
-          type: string
-          description: Nomor telepon pengguna
-          example: "081234567890"
-          nullable: true
         balance:
           type: number
           format: double

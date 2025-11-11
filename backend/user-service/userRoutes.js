@@ -29,6 +29,9 @@ const {
  *           type: string
  *           format: email
  *           description: User's email address
+ *         phone:
+ *           type: string
+ *           description: User's phone number
  *         balance:
  *           type: number
  *           format: double
@@ -43,6 +46,7 @@ const {
  *         id: 1
  *         name: John Doe
  *         email: john@example.com
+ *         phone: 081234567890
  *         balance: 150000.00
  */
 
@@ -127,12 +131,15 @@ router.get('/:id', getUserById);
  *               email:
  *                 type: string
  *                 format: email
+ *               phone:
+ *                 type: string
  *               balance:
  *                 type: number
  *                 default: 0
  *             example:
  *               name: John Doe
  *               email: john@example.com
+ *               phone: 081234567890
  *               balance: 100000
  *     responses:
  *       201:
@@ -169,9 +176,13 @@ router.post('/', createUser);
  *                 type: string
  *                 format: email
  *                 description: User's email
+ *               phone:
+ *                 type: string
+ *                 description: User's phone number
  *             example:
  *               name: John Doe Updated
  *               email: john.updated@example.com
+ *               phone: 081234567899
  *     responses:
  *       200:
  *         description: User updated successfully

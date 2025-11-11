@@ -7,7 +7,7 @@ const { Op } = require('sequelize');
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
-      attributes: ['id', 'name', 'email', 'phone', 'balance', 'created_at', 'updated_at']
+      attributes: ['id', 'name', 'email', 'balance', 'created_at', 'updated_at']
     });
 
     res.status(200).json({
@@ -31,7 +31,7 @@ const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
     const user = await User.findByPk(id, {
-      attributes: ['id', 'name', 'email', 'phone', 'balance', 'created_at', 'updated_at']
+      attributes: ['id', 'name', 'email', 'balance', 'created_at', 'updated_at']
     });
 
     if (!user) {
@@ -60,7 +60,7 @@ const getUserById = async (req, res) => {
  */
 const createUser = async (req, res) => {
   try {
-    const { name, email, phone, balance = 0 } = req.body;
+    const { name, email, balance = 0 } = req.body;
 
     // Validation
     if (!name || !email) {
@@ -90,7 +90,6 @@ const createUser = async (req, res) => {
     const user = await User.create({
       name,
       email,
-      phone,
       balance: balance || 0
     });
 
@@ -101,7 +100,6 @@ const createUser = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        phone: user.phone,
         balance: user.balance,
         created_at: user.created_at,
         updated_at: user.updated_at
@@ -193,7 +191,6 @@ const updateUserBalance = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        phone: user.phone,
         balance: parseFloat(user.balance),
         created_at: user.created_at,
         updated_at: user.updated_at
@@ -210,12 +207,12 @@ const updateUserBalance = async (req, res) => {
 };
 
 /**
- * Update user info (name, email, phone)
+ * Update user info (name, email)
  */
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone } = req.body;
+    const { name, email} = req.body;
 
     // Find user
     const user = await User.findByPk(id);
@@ -244,7 +241,6 @@ const updateUser = async (req, res) => {
     const updateData = {};
     if (name) updateData.name = name;
     if (email) updateData.email = email;
-    if (phone !== undefined) updateData.phone = phone;
 
     await user.update(updateData);
 
@@ -255,7 +251,6 @@ const updateUser = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        phone: user.phone,
         balance: user.balance,
         created_at: user.created_at,
         updated_at: user.updated_at

@@ -19,10 +19,6 @@ const User = sequelize.define('User', {
       isEmail: true
     }
   },
-  phone: {
-    type: DataTypes.STRING(20),
-    allowNull: true
-  },
   balance: {
     type: DataTypes.DECIMAL(15, 2),
     allowNull: false,
